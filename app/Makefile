@@ -19,7 +19,7 @@ FLAVOR = debug
 
 ifndef PDIR # {
 GEN_IMAGES= eagle.app.v6.out
-GEN_BINS= eagle.app.v6.bin
+GEN_BINS= eagle.app.v6.bin rboot.bin
 SPECIAL_MKTARGETS=$(APP_MKTARGETS)
 SUBDIRS= 					\
 	user 					\
@@ -46,7 +46,8 @@ SUBDIRS= 					\
 	http					\
 	fatfs					\
 	esp-gdbstub				\
-	websocket
+	websocket				\
+	rboot
 
 endif # } PDIR
 
@@ -96,7 +97,9 @@ COMPONENTS_eagle.app.v6 = 			\
 	esp-gdbstub/libgdbstub.a		\
 	net/libnodemcu_net.a			\
 	mbedtls/libmbedtls.a      \
+	rboot/rboot.a 				\
 	modules/libmodules.a			\
+	libmain.a
 
 # Inspect the modules library and work out which modules need to be linked.
 # For each enabled module, a symbol name of the form XYZ_module_selected is
@@ -108,6 +111,7 @@ LINKFLAGS_eagle.app.v6 = 			\
 	-Wl,--gc-sections 			\
 	-Wl,-Map=mapfile 			\
 	-nostdlib 				\
+	-u Cache_Read_Enable_New		\
 	-T$(LD_FILE) 				\
 	-Wl,@../ld/defsym.rom			\
 	-Wl,--no-check-sections 		\
@@ -115,7 +119,7 @@ LINKFLAGS_eagle.app.v6 = 			\
 	-Wl,-static 				\
 	$(addprefix -u , $(SELECTED_MODULE_SYMS)) \
 	-Wl,--start-group 			\
-	-lmain 					\
+	$(DEP_LIBS_eagle.app.v6)		\
 	-lc 					\
 	-lgcc 					\
 	-lhal 					\
@@ -184,6 +188,10 @@ INCLUDES += -I ./
 PDIR := ../$(PDIR)
 sinclude $(PDIR)Makefile
 
+
+$(LIBODIR)/libmain.a: $(SDK_DIR)/lib/libmain.a
+	mkdir -p "$(dir $@)"
+	$(OBJCOPY) -W Cache_Read_Enable_New $^ $@
 
 .PHONY: FORCE
 FORCE:
